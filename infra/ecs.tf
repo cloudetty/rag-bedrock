@@ -91,6 +91,7 @@ resource "aws_ecs_service" "bedrock_gateway" {
   launch_type      = "FARGATE"
   task_definition  = aws_ecs_task_definition.bedrock_gateway.arn
   platform_version = "1.4.0"
+  force_new_deployment = true
 
   network_configuration {
     subnets          = aws_subnet.private[*].id
@@ -209,6 +210,7 @@ resource "aws_ecs_service" "open_webui" {
   launch_type      = "FARGATE"
   platform_version = "1.4.0"
   task_definition  = aws_ecs_task_definition.open_webui.arn
+  force_new_deployment = true
 
   load_balancer {
     target_group_arn = aws_lb_target_group.open_webui.arn

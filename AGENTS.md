@@ -6,6 +6,10 @@
 - GitHub repo secrets set: `AWS_REGION=us-east-1`, `AWS_ACCOUNT_ID=425176714222`, `AWS_ROLE_TO_ASSUME=arn:aws:iam::425176714222:role/github-actions-ecr-builder`.
 - Workflows: `.github/workflows/push-bedrock-access-gateway.yml` and `push-open-webui.yml` build/push placeholder images from `services/*/Dockerfile` to ECR on pushes to `main` (tags: git SHA + `latest`). OIDC permissions fixed; ECR auth/push succeeded after adding `GetAuthorizationToken` and `BatchGetImage`.
 - Terraform IAM policy now allows ECR token on `*` and push actions (incl. `BatchGetImage`) on the two repos.
+- Terraform now provisions the VPC, two public/ private subnets, NAT gateways, security groups, and an ALB with a placeholder HTTP listener so the networking milestone is in place ahead of ECS services.
+- Terraform now generates the `openwebui_gateway_api_key` secret plus the ECS execution role and per-task IAM roles (Bedrock gateway with Bedrock invoke permissions, Open WebUI limited to CloudWatch Logs) and exports their ARNs for downstream ECS definitions.
+- Terraform now provisions the ECS cluster, Cloud Map namespace, log group, and the private Bedrock gateway service that registers as `bedrock-gateway.internal` so the future Open WebUI can talk to it via service discovery using the shared API key.
+- Terraform also deploys the Open WebUI ECS task/service with the EFS volume, the routed ALB target group/listener, and the environment/secrets so it can talk to `bedrock-gateway.internal`, persist `/app/backend/data`, and surface the UI through the load balancer.
 
 ## Milestones (from user plan)
 - Milestone 0 — Decisions and prerequisites  

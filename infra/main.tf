@@ -68,6 +68,15 @@ resource "aws_iam_role" "github_actions" {
 
 data "aws_iam_policy_document" "github_actions_ecr" {
   statement {
+    sid    = "AllowGetAuthToken"
+    effect = "Allow"
+    actions = [
+      "ecr:GetAuthorizationToken",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
     sid    = "AllowPushToRepo"
     effect = "Allow"
     actions = [
@@ -75,7 +84,6 @@ data "aws_iam_policy_document" "github_actions_ecr" {
       "ecr:CompleteLayerUpload",
       "ecr:CreateRepository",
       "ecr:DescribeRepositories",
-      "ecr:GetAuthorizationToken",
       "ecr:InitiateLayerUpload",
       "ecr:PutImage",
       "ecr:UploadLayerPart",

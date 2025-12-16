@@ -13,6 +13,23 @@ Before pushing to `main`, configure these repository secrets:
 
 Each workflow runs on pushes to `main` and tags the image with both the git SHA and `latest`. A successful run guarantees new tags appear in ECR for the two repositories.
 
+## Services
+
+- `services/bedrock-gateway` now contains a FastAPI + `boto3` application (`app/main.py`) that authenticates using `OPENWEBUI_GATEWAY_API_KEY`, lists Bedrock models (`/models`), and implements `/api/v1/completions` to invoke Bedrock models via `bedrock-runtime`.
+- `services/open-webui` now hosts a FastAPI proxy that serves a tiny HTML/JS UI (`app/main.py`) and forwards `/api/models` and `/api/completions` to the gateway while reusing `OPENAI_API_BASE_URL`/`OPENAI_API_KEY`.
+- Both services expose `/healthz` for ECS health checks, and their Dockerfiles now build from `python:3.11-slim` so the ECS tasks serve actual application code instead of placeholder `busybox` commands.
+
+## Smoke test
+
+`tests/smoke_test.py` is a py script you can run after the ALB is healthy:
+
+```bash
+python -m pip install -r tests/requirements.txt
+python tests/smoke_test.py --url http://<alb-dns>
+```
+
+It verifies `/healthz`, fetches `/api/models`, and submits a prompt to `/api/completions` so you can confirm Milestone 9 without manually poking the UI.
+
 ## Networking & load balancer
 
 Terraform now provisions the VPC that will host ECS, including two public subnets for the ALB, two private subnets for the services, NAT gateways for egress, and security groups that enforce the ALB → Open WebUI → Bedrock gateway flow described in the plan.

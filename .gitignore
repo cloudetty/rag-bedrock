@@ -10,3 +10,4 @@ infra/.terraform/
 infra/terraform.tfstate
 infra/terraform.tfstate.backup
 infra/terraform.tfvars
+scripts/.ecs-service-counts.txt

@@ -32,7 +32,7 @@ It verifies `/healthz`, fetches `/api/models`, and submits a prompt to `/api/com
 
 ## Networking & load balancer
 
-Terraform now provisions the VPC that will host ECS, including two public subnets for the ALB, two private subnets for the services, NAT gateways for egress, and security groups that enforce the ALB → Open WebUI → Bedrock gateway flow described in the plan.
+Terraform now provisions the VPC that will host ECS, including two public subnets (used by both the ALB and the services), and security groups that enforce the ALB → Open WebUI → Bedrock gateway flow described in the plan. NAT gateways were removed to cut costs; tasks now use public IPs for egress while inbound remains SG-restricted.
 
 The ALB lives in the public subnets and already exposes a placeholder HTTP listener so it can be tested before services are attached; the DNS name and security group IDs are available via the new Terraform outputs.
 

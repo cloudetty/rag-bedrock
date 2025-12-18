@@ -21,6 +21,26 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+data "aws_iam_policy_document" "ecs_task_execution_secrets" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "secretsmanager:GetSecretValue",
+    ]
+
+    resources = [
+      aws_secretsmanager_secret.openwebui_gateway_api_key.arn,
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
+  name   = "${local.project}-ecs-execution-secrets"
+  role   = aws_iam_role.ecs_task_execution.id
+  policy = data.aws_iam_policy_document.ecs_task_execution_secrets.json
+}
+
 resource "aws_iam_role" "bedrock_gateway" {
   name               = "${local.project}-bedrock-gateway-task"
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json

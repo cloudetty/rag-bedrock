@@ -6,10 +6,11 @@
 - GitHub repo secrets set: `AWS_REGION=us-east-1`, `AWS_ACCOUNT_ID=425176714222`, `AWS_ROLE_TO_ASSUME=arn:aws:iam::425176714222:role/github-actions-ecr-builder`.
 - Workflows: `.github/workflows/push-bedrock-access-gateway.yml` and `push-open-webui.yml` build/push placeholder images from `services/*/Dockerfile` to ECR on pushes to `main` (tags: git SHA + `latest`). OIDC permissions fixed; ECR auth/push succeeded after adding `GetAuthorizationToken` and `BatchGetImage`.
 - Terraform IAM policy now allows ECR token on `*` and push actions (incl. `BatchGetImage`) on the two repos.
-- Terraform now provisions the VPC, two public/ private subnets, NAT gateways, security groups, and an ALB with a placeholder HTTP listener so the networking milestone is in place ahead of ECS services.
+- Terraform now provisions the VPC with two public subnets (used by ALB and the ECS tasks), security groups, and an ALB with a placeholder HTTP listener; NAT gateways were removed to cut costs, and tasks use public IPs for egress.
 - Terraform now generates the `openwebui_gateway_api_key` secret plus the ECS execution role and per-task IAM roles (Bedrock gateway with Bedrock invoke permissions, Open WebUI limited to CloudWatch Logs) and exports their ARNs for downstream ECS definitions.
 - Terraform now provisions the ECS cluster, Cloud Map namespace, log group, and the private Bedrock gateway service that registers as `bedrock-gateway.internal` so the future Open WebUI can talk to it via service discovery using the shared API key.
-- Terraform also deploys the Open WebUI ECS task/service with the EFS volume, the routed ALB target group/listener, and the environment/secrets so it can talk to `bedrock-gateway.internal`, persist `/app/backend/data`, and surface the UI through the load balancer.
+- Terraform also deploys the Open WebUI ECS task/service with the EFS volume, the routed ALB target group/listener, and the environment/secrets so it can talk to `bedrock-gateway.internal`, persist `/app/backend/data`, and surface the UI through the load balancer (tasks now run in public subnets with public IPs; inbound is still SG-restricted).
+- Gateway image rebuilt for amd64 with Bedrock chat/prompt payload branching; ECS redeployed; ALB smoke tests: `/api/models` returns model list, `/api/completions` succeeds with `meta.llama3-8b-instruct-v1:0`. Anthropic models still blocked pending AWS use-case approval.
 
 ## Milestones (from user plan)
 - Milestone 0 — Decisions and prerequisites  
@@ -30,13 +31,13 @@
   - ECS cluster, Cloud Map namespace (e.g., `internal`); task def uses ECR image + API key from Secrets Manager + IAM role; service in private subnets (no public IP).
 - Milestone 8 — ECS deploy: Open WebUI (behind ALB)  
   - Task def mounts EFS to `/app/backend/data`; env vars:  
-    - `OPENAI_API_BASE_URL=http://bedrock-gateway.internal:80/api/v1`  
+    - `OPENAI_API_BASE_URL=http://bedrock-gateway.internal`  
     - `OPENAI_API_KEY` from Secrets Manager (same key)  
     - `WEBUI_URL=http://<ALB-DNS>` (later https)  
     - `WEBUI_SECRET_KEY` random  
   - ECS service in private subnets; ALB target group + listener rules.
-- Milestone 9 — Wire up model + smoke test  
-  - Confirm models list via gateway; send prompt; verify response.
+- Milestone 9 — Wire up model + smoke test (done 2025-12-17 21:47:59Z)  
+  - Confirmed `/api/models` via ALB; completion succeeds with `meta.llama3-8b-instruct-v1:0` through ALB. Anthropic models pending AWS use-case approval.
 - Milestone 10 — RAG: “Doc Detective” (Random PDFs)  
   - Enable Open WebUI Documents; upload PDFs; ask questions w/ citations and a “not found” test.
 - Milestone 11 — HTTPS + domain (optional)  

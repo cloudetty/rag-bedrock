@@ -57,6 +57,7 @@ resource "aws_ecs_task_definition" "bedrock_gateway" {
     {
       name  = "bedrock-gateway"
       image = "${aws_ecr_repository.bedrock_gateway.repository_url}:latest"
+      user  = "0"
 
       portMappings = [
         {
@@ -94,9 +95,9 @@ resource "aws_ecs_service" "bedrock_gateway" {
   force_new_deployment = true
 
   network_configuration {
-    subnets          = aws_subnet.private[*].id
+    subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.bedrock_gateway.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
 
   service_registries {
@@ -136,6 +137,7 @@ resource "aws_ecs_task_definition" "open_webui" {
     {
       name  = "open-webui"
       image = "${aws_ecr_repository.open_webui.repository_url}:latest"
+      user  = "0"
 
       portMappings = [
         {
@@ -156,7 +158,7 @@ resource "aws_ecs_task_definition" "open_webui" {
       environment = [
         {
           name  = "OPENAI_API_BASE_URL"
-          value = "http://bedrock-gateway.internal:80/api/v1"
+          value = "http://bedrock-gateway.internal"
         },
         {
           name  = "WEBUI_URL"
@@ -219,8 +221,8 @@ resource "aws_ecs_service" "open_webui" {
   }
 
   network_configuration {
-    subnets          = aws_subnet.private[*].id
+    subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.open_webui.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
 }

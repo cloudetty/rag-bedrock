@@ -70,49 +70,6 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_eip" "nat" {
-  count  = length(local.azs)
-  domain = "vpc"
-
-  tags = {
-    Name    = "${local.project}-nat-eip-${count.index + 1}"
-    Project = local.project
-  }
-}
-
-resource "aws_nat_gateway" "main" {
-  count = length(local.azs)
-
-  allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
-
-  tags = {
-    Name    = "${local.project}-nat-${count.index + 1}"
-    Project = local.project
-  }
-}
-
-resource "aws_route_table" "private" {
-  count  = length(local.azs)
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main[count.index].id
-  }
-
-  tags = {
-    Name    = "${local.project}-private-rt-${count.index + 1}"
-    Project = local.project
-  }
-}
-
-resource "aws_route_table_association" "private" {
-  count          = length(local.azs)
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id
-}
-
 resource "aws_security_group" "alb" {
   vpc_id = aws_vpc.main.id
 
@@ -152,6 +109,13 @@ resource "aws_security_group" "open_webui" {
     security_groups = [aws_security_group.alb.id]
   }
 
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   tags = {
     Name    = "${local.project}-open-webui-sg"
     Project = local.project
@@ -169,6 +133,13 @@ resource "aws_security_group" "bedrock_gateway" {
     to_port         = 80
     protocol        = "tcp"
     security_groups = [aws_security_group.open_webui.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {

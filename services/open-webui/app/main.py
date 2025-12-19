@@ -964,7 +964,7 @@ RAW_HTML_PAGE = """
           return;
         }
         const lines = state.history.map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`);
-        const blob = new Blob([lines.join("\n\n")], { type: "text/plain" });
+        const blob = new Blob([lines.join("\\n\\n")], { type: "text/plain" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;

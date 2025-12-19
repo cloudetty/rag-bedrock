@@ -45,9 +45,9 @@ def health():
 @app.get("/models", dependencies=[Depends(require_api_key)])
 def list_models():
     try:
-        response = bedrock_client.list_models(maxResults=100)
+        response = bedrock_client.list_foundation_models()
     except ClientError as exc:
-        logging.exception("Bedrock list_models failed")
+        logging.exception("Bedrock list_foundation_models failed")
         raise HTTPException(status_code=502, detail="Bedrock list models failed") from exc
 
     models = response.get("modelSummaries") or response.get("models") or []

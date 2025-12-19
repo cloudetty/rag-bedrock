@@ -66,9 +66,20 @@ def invoke_completion(payload: CompletionRequest):
     if not payload.prompt and not payload.messages:
         raise HTTPException(status_code=400, detail="Provide either 'prompt' or 'messages'")
 
+    def build_chat_like_prompt(messages: List[CompletionRequest.ChatMessage]) -> str:
+        """Render chat turns into a plain prompt for models that don't support chat natively."""
+        parts = []
+        role_map = {"user": "User", "assistant": "Assistant", "system": "System"}
+        for msg in messages:
+            role = role_map.get(msg.role, msg.role)
+            parts.append(f"{role}:\n{msg.content}")
+        # Hint the model to continue as the assistant.
+        parts.append("Assistant:")
+        return "\n\n".join(parts)
+
     # Normalize prompt/messages for downstream models.
     if payload.messages:
-        prompt_text = "\n\n".join(msg.content for msg in payload.messages)
+        prompt_text = build_chat_like_prompt(payload.messages)
     else:
         prompt_text = payload.prompt or ""
 

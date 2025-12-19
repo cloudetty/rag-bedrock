@@ -1,0 +1,10 @@
+Infrastructure deployed by this project (us-east-1):
+
+- VPC & networking: one VPC with two public subnets (tasks + ALB), two unused private subnets, IGW, public route table; NAT gateways removed; security groups for ALB, Open WebUI, gateway, and EFS.
+- Load balancer: public ALB with HTTP listener/target group routing to the Open WebUI service.
+- ECS: Fargate cluster with two services: (1) bedrock-gateway (private Bedrock proxy, currently in public subnets with public IP for egress); (2) open-webui (UI/API behind the ALB). Cloud Map namespace for discovery (`bedrock-gateway.internal`); CloudWatch log groups `/ecs/bedrock-gateway` and `/ecs/open-webui`.
+- Storage: EFS file system + mount targets for Open WebUI to persist `/app/backend/data`.
+- Secrets: Secrets Manager secret `openwebui_gateway_api_key` (shared between WebUI and gateway).
+- IAM: ECS execution role (ECR pull + logs); gateway task role (Bedrock invoke); Open WebUI task role (logs minimal); GitHub Actions OIDC role `github-actions-ecr-builder` for CI image pushes.
+- ECR: repositories `open-webui` and `bedrock-access-gateway` for built images (tags: git SHA + `latest`).
+- CI/CD: GitHub Actions workflows `push-open-webui.yml` and `push-bedrock-access-gateway.yml` build/push images on `main` using the OIDC role.

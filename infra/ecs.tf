@@ -161,6 +161,22 @@ resource "aws_ecs_task_definition" "open_webui" {
           value = "http://bedrock-gateway.internal"
         },
         {
+          name  = "APP_TITLE"
+          value = "Rag Bedrock"
+        },
+        {
+          name  = "APP_TAGLINE"
+          value = "Fast, clean chat on Bedrock"
+        },
+        {
+          name  = "DEFAULT_SYSTEM_PROMPT"
+          value = "You are a helpful assistant. Be concise, clear, and ask questions when needed."
+        },
+        {
+          name  = "PREFERRED_MODEL_IDS"
+          value = "anthropic.claude-3-5-sonnet,amazon.nova-pro,meta.llama3-70b-instruct,meta.llama3-8b-instruct"
+        },
+        {
           name  = "WEBUI_URL"
           value = format("http://%s", aws_lb.webui.dns_name)
         },

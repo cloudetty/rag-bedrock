@@ -16,7 +16,7 @@ Each workflow runs on pushes to `main` and tags the image with both the git SHA 
 ## Services
 
 - `services/bedrock-gateway` now contains a FastAPI + `boto3` application (`app/main.py`) that authenticates using `OPENWEBUI_GATEWAY_API_KEY`, lists Bedrock models (`/models`), and implements `/api/v1/completions` to invoke Bedrock models via `bedrock-runtime`.
-- `services/open-webui` now hosts a FastAPI proxy that serves a tiny HTML/JS UI (`app/main.py`) and forwards `/api/models` and `/api/completions` to the gateway while reusing `OPENAI_API_BASE_URL`/`OPENAI_API_KEY`.
+- `services/open-webui` now hosts a FastAPI proxy that serves a polished chat UI (`app/main.py`) and forwards `/api/models` and `/api/completions` to the gateway while reusing `OPENAI_API_BASE_URL`/`OPENAI_API_KEY`.
 - Both services expose `/healthz` for ECS health checks, and their Dockerfiles now build from `python:3.11-slim` so the ECS tasks serve actual application code instead of placeholder `busybox` commands.
 
 ## Smoke test

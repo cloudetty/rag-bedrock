@@ -20,7 +20,7 @@ if not api_key:
 bedrock_client = boto3.client("bedrock")
 runtime_client = boto3.client("bedrock-runtime")
 
-app = FastAPI(title="Bedrock Access Gateway", version="0.1.0")
+app = FastAPI(title="Bedrock Access Gateway", version="0.2.0")
 
 
 def require_api_key(x_api_key: str = Header(..., alias="x-openwebui-api-key")):
@@ -94,24 +94,28 @@ def invoke_completion(payload: CompletionRequest):
     else:
         prompt_text = payload.prompt or ""
 
-    if payload.modelId.startswith(("anthropic.", "amazon.nova", "openai.")):
-        # Use Bedrock chat schema.
-        messages_payload = payload.messages or [
-            {
-                "role": "user",
-                "content": [{"type": "text", "text": prompt_text}],
-            }
-        ]
+    def is_bedrock_chat_model(model_id: str) -> bool:
+        return model_id.startswith(("anthropic.", "amazon.nova"))
 
+    def is_openai_chat_model(model_id: str) -> bool:
+        return model_id.startswith(("openai.", "nvidia."))
+
+    if is_bedrock_chat_model(payload.modelId):
+        # Bedrock chat schema (Claude/Nova).
         if payload.messages:
             messages_payload = [
-                {
-                    "role": msg.role,
-                    "content": [{"type": "text", "text": msg.content}],
-                }
+                {"role": msg.role, "content": [{"type": "text", "text": msg.content}]}
                 for msg in payload.messages
             ]
-
+        else:
+            messages_payload = [{"role": "user", "content": [{"type": "text", "text": prompt_text}]}]
+        body_payload = {"messages": messages_payload}
+    elif is_openai_chat_model(payload.modelId):
+        # OpenAI-style chat schema (GPT-OSS/NVIDIA).
+        if payload.messages:
+            messages_payload = [{"role": msg.role, "content": msg.content} for msg in payload.messages]
+        else:
+            messages_payload = [{"role": "user", "content": prompt_text}]
         body_payload = {"messages": messages_payload}
     else:
         # Prompt-based schema for other models (e.g., Llama/Mistral/Qwen).

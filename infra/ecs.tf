@@ -174,7 +174,7 @@ resource "aws_ecs_task_definition" "open_webui" {
         },
         {
           name  = "PREFERRED_MODEL_IDS"
-          value = "anthropic.claude-3-5-sonnet,amazon.nova-pro,meta.llama3-70b-instruct,meta.llama3-8b-instruct"
+          value = "openai.gpt-oss-120b,meta.llama3-70b-instruct,mistral.mistral-large-2402,meta.llama3-8b-instruct"
         },
         {
           name  = "WEBUI_URL"

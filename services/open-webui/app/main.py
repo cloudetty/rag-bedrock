@@ -839,6 +839,11 @@ RAW_HTML_PAGE = """
         if (typeof body === "string") return body;
         if (body.generation) return body.generation;
         if (body.output) return body.output;
+        if (Array.isArray(body.choices) && body.choices[0]) {
+          const choice = body.choices[0];
+          if (choice.message?.content) return choice.message.content;
+          if (choice.text) return choice.text;
+        }
         if (Array.isArray(body.outputs) && body.outputs[0]?.text) return body.outputs[0].text;
         if (Array.isArray(body.results) && body.results[0]?.outputText) return body.results[0].outputText;
         if (Array.isArray(body.generations) && body.generations[0]?.text) return body.generations[0].text;

@@ -614,6 +614,24 @@ RAW_HTML_PAGE = """
         modelId: "",
       };
       let recommendedModelId = "";
+      const storage = {
+        get(key) {
+          try {
+            return window.localStorage ? localStorage.getItem(key) : null;
+          } catch (err) {
+            return null;
+          }
+        },
+        set(key, value) {
+          try {
+            if (window.localStorage) {
+              localStorage.setItem(key, value);
+            }
+          } catch (err) {
+            // Ignore storage failures (private mode, blocked storage, quota, etc.).
+          }
+        },
+      };
 
       const quickPrompts = [
         "Summarize this in three bullet points.",
@@ -627,6 +645,11 @@ RAW_HTML_PAGE = """
         statusPill.classList.toggle("error", isError);
       }
 
+      function reportError(message) {
+        output.textContent = message;
+        setStatus("Client error", true);
+      }
+
       function saveState() {
         const payload = {
           history: state.history,
@@ -634,11 +657,11 @@ RAW_HTML_PAGE = """
           systemPrompt: state.systemPrompt,
           modelId: state.modelId,
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        storage.set(STORAGE_KEY, JSON.stringify(payload));
       }
 
       function loadState() {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = storage.get(STORAGE_KEY);
         if (!raw) {
           return;
         }
@@ -779,6 +802,9 @@ RAW_HTML_PAGE = """
         try {
           setStatus("Loading models...");
           const response = await fetch("/api/models");
+          if (!response.ok) {
+            throw new Error(await response.text());
+          }
           const data = await response.json();
           const entries = data.models || data.modelSummaries || [];
 
@@ -977,6 +1003,14 @@ RAW_HTML_PAGE = """
         autoResize(promptField);
         loadModels();
       }
+
+      window.addEventListener("error", (event) => {
+        reportError(`Client error: ${event.message}`);
+      });
+      window.addEventListener("unhandledrejection", (event) => {
+        const message = event.reason?.message || String(event.reason || "Unknown error");
+        reportError(`Client error: ${message}`);
+      });
 
       runButton.addEventListener("click", runPrompt);
       promptField.addEventListener("keydown", (event) => {

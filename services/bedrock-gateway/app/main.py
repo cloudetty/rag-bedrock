@@ -129,7 +129,11 @@ def invoke_completion(payload: CompletionRequest):
         )
     except ClientError as exc:
         logging.exception("Bedrock invoke_model failed")
-        raise HTTPException(status_code=502, detail="Bedrock invocation failed") from exc
+        error_detail = exc.response.get("Error", {}).get("Message") if hasattr(exc, "response") else str(exc)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Bedrock invocation failed: {error_detail}",
+        ) from exc
 
     streaming_body = response.get("body")
     if streaming_body is None:

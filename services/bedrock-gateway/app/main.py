@@ -58,7 +58,18 @@ def list_models():
         raise HTTPException(status_code=502, detail="Bedrock list models failed") from exc
 
     models = response.get("modelSummaries") or response.get("models") or []
-    return {"models": models, "nextToken": response.get("nextToken")}
+
+    filtered_models = []
+    for model in models:
+        outputs = model.get("outputModalities") or []
+        inference = model.get("inferenceTypesSupported") or []
+        if "TEXT" in outputs and "ON_DEMAND" in inference:
+            filtered_models.append(model)
+
+    return {
+        "models": filtered_models or models,
+        "nextToken": response.get("nextToken"),
+    }
 
 
 @app.post("/api/v1/completions", dependencies=[Depends(require_api_key)])
@@ -83,7 +94,7 @@ def invoke_completion(payload: CompletionRequest):
     else:
         prompt_text = payload.prompt or ""
 
-    if payload.modelId.startswith(("anthropic.", "amazon.nova")):
+    if payload.modelId.startswith(("anthropic.", "amazon.nova", "openai.")):
         # Use Bedrock chat schema.
         messages_payload = payload.messages or [
             {

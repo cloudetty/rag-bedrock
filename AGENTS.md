@@ -11,6 +11,7 @@
 - Terraform now provisions the ECS cluster, Cloud Map namespace, log group, and the private Bedrock gateway service that registers as `bedrock-gateway.internal` so the future Open WebUI can talk to it via service discovery using the shared API key.
 - Terraform also deploys the Open WebUI ECS task/service with the EFS volume, the routed ALB target group/listener, and the environment/secrets so it can talk to `bedrock-gateway.internal`, persist `/app/backend/data`, and surface the UI through the load balancer (tasks now run in public subnets with public IPs; inbound is still SG-restricted).
 - Gateway image rebuilt for amd64 with Bedrock chat/prompt payload branching; ECS redeployed; ALB smoke tests: `/api/models` returns model list, `/api/completions` succeeds with `meta.llama3-8b-instruct-v1:0`. Anthropic models still blocked pending AWS use-case approval.
+- 2025-12-19 16:03:33Z — Open WebUI frontend redesigned to a modern chat layout (sticky composer, status pill, collapsible response details). Pending deploy via CI/ECS.
 
 ## Milestones (from user plan)
 - Milestone 0 — Decisions and prerequisites  

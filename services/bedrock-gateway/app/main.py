@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import Optional
+from typing import List, Optional
 
 import boto3
 from botocore.exceptions import ClientError
@@ -32,8 +32,15 @@ def require_api_key(x_api_key: str = Header(..., alias="x-openwebui-api-key")):
 
 
 class CompletionRequest(BaseModel):
+    class ChatMessage(BaseModel):
+        role: str = Field(..., description="Message role (user/assistant/system)")
+        content: str = Field(..., description="Plain text content")
+
     modelId: str = Field(..., description="Bedrock model identifier (e.g., anthropic.claude-3-opus)")
-    prompt: str = Field(..., description="Prompt text to send to Bedrock")
+    prompt: Optional[str] = Field(None, description="Prompt text to send to Bedrock")
+    messages: Optional[List[ChatMessage]] = Field(
+        None, description="Optional chat-style messages; if provided, overrides prompt"
+    )
     temperature: Optional[float] = Field(None, ge=0.0, le=1.0, description="Optional temperature hint")
 
 
@@ -56,7 +63,38 @@ def list_models():
 
 @app.post("/api/v1/completions", dependencies=[Depends(require_api_key)])
 def invoke_completion(payload: CompletionRequest):
-    body_payload = {"input": payload.prompt}
+    if not payload.prompt and not payload.messages:
+        raise HTTPException(status_code=400, detail="Provide either 'prompt' or 'messages'")
+
+    # Normalize prompt/messages for downstream models.
+    if payload.messages:
+        prompt_text = "\n\n".join(msg.content for msg in payload.messages)
+    else:
+        prompt_text = payload.prompt or ""
+
+    if payload.modelId.startswith(("anthropic.", "amazon.nova")):
+        # Use Bedrock chat schema.
+        messages_payload = payload.messages or [
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": prompt_text}],
+            }
+        ]
+
+        if payload.messages:
+            messages_payload = [
+                {
+                    "role": msg.role,
+                    "content": [{"type": "text", "text": msg.content}],
+                }
+                for msg in payload.messages
+            ]
+
+        body_payload = {"messages": messages_payload}
+    else:
+        # Prompt-based schema for other models (e.g., Llama/Mistral/Qwen).
+        body_payload = {"prompt": prompt_text}
+
     if payload.temperature is not None:
         body_payload["temperature"] = payload.temperature
 

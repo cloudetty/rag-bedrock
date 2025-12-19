@@ -90,6 +90,32 @@ HTML_PAGE = """
         padding: 1.5rem;
         box-shadow: 0 15px 45px rgba(0, 0, 0, 0.5);
       }
+      #chat {
+        min-height: 180px;
+        max-height: 320px;
+        overflow-y: auto;
+        border: 1px solid #30363d;
+        border-radius: 10px;
+        padding: 0.75rem;
+        margin: 0.75rem 0 1rem;
+        background: #0b1220;
+      }
+      .bubble {
+        padding: 0.75rem;
+        border-radius: 10px;
+        margin-bottom: 0.5rem;
+        max-width: 100%;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .bubble.user {
+        background: #1f6feb;
+        color: #ffffff;
+      }
+      .bubble.assistant {
+        background: #1c1f26;
+        color: #c9d1d9;
+      }
       label {
         display: block;
         margin-bottom: 0.75rem;
@@ -132,18 +158,20 @@ HTML_PAGE = """
   <body>
     <main>
       <h1>Open WebUI</h1>
-      <p>Send prompts to Bedrock via the gateway to see model outputs.</p>
+      <p>Chat with Bedrock via the gateway.</p>
       <label for="model">Model</label>
       <select id="model" aria-label="Choose a Bedrock model"></select>
 
-      <label for="prompt">Prompt</label>
+      <div id="chat" aria-live="polite"></div>
+
+      <label for="prompt">Message</label>
       <textarea
         id="prompt"
-        rows="6"
-        placeholder="Write a short story or ask a question..."
+        rows="4"
+        placeholder="Ask a question or start the conversation..."
       ></textarea>
 
-      <button id="run" type="button">Submit</button>
+      <button id="run" type="button">Send</button>
 
       <pre id="output" aria-live="polite"></pre>
     </main>
@@ -153,6 +181,19 @@ HTML_PAGE = """
       const output = document.getElementById("output");
       const runButton = document.getElementById("run");
       const promptField = document.getElementById("prompt");
+      const chatContainer = document.getElementById("chat");
+      const history = [];
+
+      function renderChat() {
+        chatContainer.innerHTML = "";
+        history.slice(-20).forEach((msg) => {
+          const bubble = document.createElement("div");
+          bubble.className = msg.role === "user" ? "bubble user" : "bubble assistant";
+          bubble.textContent = msg.content;
+          chatContainer.appendChild(bubble);
+        });
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
 
       async function loadModels() {
         try {
@@ -187,6 +228,16 @@ HTML_PAGE = """
           return;
         }
 
+        const userMessage = promptField.value.trim();
+        if (!userMessage) {
+          output.textContent = "Type a message before sending.";
+          return;
+        }
+
+        history.push({ role: "user", content: userMessage });
+        renderChat();
+        promptField.value = "";
+
         runButton.disabled = true;
         runButton.textContent = "Sending...";
         output.textContent = "Waiting for the gateway...";
@@ -199,7 +250,7 @@ HTML_PAGE = """
             },
             body: JSON.stringify({
               modelId,
-              prompt: promptField.value.trim() || "Hello from Open WebUI",
+              messages: history,
             }),
           });
 
@@ -208,6 +259,12 @@ HTML_PAGE = """
           }
 
           const data = await response.json();
+          const text =
+            data.body?.generation ||
+            data.body?.output ||
+            JSON.stringify(data.body || data, null, 2);
+          history.push({ role: "assistant", content: text });
+          renderChat();
           output.textContent = JSON.stringify(data, null, 2);
         } catch (err) {
           output.textContent = "Request failed: " + err.message;

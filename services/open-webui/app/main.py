@@ -408,17 +408,26 @@ HTML_PAGE = """
           const response = await fetch("/api/models");
           const data = await response.json();
           const entries = data.models || data.modelSummaries || [];
+
+          const filtered = entries.filter((entry) => {
+            const outputs = entry.outputModalities || [];
+            const inference = entry.inferenceTypesSupported || [];
+            const isTextCapable = outputs.includes("TEXT");
+            const isOnDemand = inference.includes("ON_DEMAND");
+            // Keep only on-demand text models to avoid inference-profile-only failures.
+            return isTextCapable && isOnDemand;
+          });
           modelsSelect.innerHTML = "";
 
-          entries.forEach((entry) => {
+          (filtered.length ? filtered : entries).forEach((entry) => {
             const option = document.createElement("option");
             option.value = entry.modelId || entry.model_id || "";
-            option.textContent =
-              option.value || entry.name || "Unnamed model";
+            const provider = entry.providerName ? ` · ${entry.providerName}` : "";
+            option.textContent = (option.value || entry.name || "Unnamed model") + provider;
             modelsSelect.appendChild(option);
           });
 
-          if (!entries.length) {
+          if (!(filtered.length || entries.length)) {
             const option = document.createElement("option");
             option.textContent = "No models found";
             option.disabled = true;
